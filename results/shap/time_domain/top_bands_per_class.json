@@ -1,0 +1,212 @@
+{
+  "Healthy": [
+    {
+      "band": "100-150Hz",
+      "importance": 0.17027
+    },
+    {
+      "band": "50-100Hz",
+      "importance": 0.09685
+    },
+    {
+      "band": "200-250Hz",
+      "importance": 0.08033
+    },
+    {
+      "band": "300-350Hz",
+      "importance": 0.06907
+    },
+    {
+      "band": "250-300Hz",
+      "importance": 0.06676
+    },
+    {
+      "band": "400-450Hz",
+      "importance": 0.05697
+    },
+    {
+      "band": "0-50Hz",
+      "importance": 0.0565
+    },
+    {
+      "band": "150-200Hz",
+      "importance": 0.05128
+    },
+    {
+      "band": "350-400Hz",
+      "importance": 0.04409
+    },
+    {
+      "band": "450-500Hz",
+      "importance": 0.02523
+    }
+  ],
+  "Severity-100": [
+    {
+      "band": "100-150Hz",
+      "importance": 0.206
+    },
+    {
+      "band": "50-100Hz",
+      "importance": 0.15885
+    },
+    {
+      "band": "0-50Hz",
+      "importance": 0.13126
+    },
+    {
+      "band": "200-250Hz",
+      "importance": 0.11556
+    },
+    {
+      "band": "350-400Hz",
+      "importance": 0.10486
+    },
+    {
+      "band": "250-300Hz",
+      "importance": 0.0931
+    },
+    {
+      "band": "150-200Hz",
+      "importance": 0.09221
+    },
+    {
+      "band": "300-350Hz",
+      "importance": 0.0778
+    },
+    {
+      "band": "400-450Hz",
+      "importance": 0.0698
+    },
+    {
+      "band": "450-500Hz",
+      "importance": 0.03163
+    }
+  ],
+  "Severity-25": [
+    {
+      "band": "100-150Hz",
+      "importance": 0.19421
+    },
+    {
+      "band": "0-50Hz",
+      "importance": 0.17655
+    },
+    {
+      "band": "200-250Hz",
+      "importance": 0.14671
+    },
+    {
+      "band": "150-200Hz",
+      "importance": 0.14582
+    },
+    {
+      "band": "50-100Hz",
+      "importance": 0.13594
+    },
+    {
+      "band": "300-350Hz",
+      "importance": 0.10321
+    },
+    {
+      "band": "250-300Hz",
+      "importance": 0.10191
+    },
+    {
+      "band": "400-450Hz",
+      "importance": 0.09463
+    },
+    {
+      "band": "350-400Hz",
+      "importance": 0.0782
+    },
+    {
+      "band": "450-500Hz",
+      "importance": 0.0351
+    }
+  ],
+  "Severity-50": [
+    {
+      "band": "100-150Hz",
+      "importance": 0.24409
+    },
+    {
+      "band": "50-100Hz",
+      "importance": 0.18094
+    },
+    {
+      "band": "0-50Hz",
+      "importance": 0.15197
+    },
+    {
+      "band": "200-250Hz",
+      "importance": 0.1255
+    },
+    {
+      "band": "150-200Hz",
+      "importance": 0.11621
+    },
+    {
+      "band": "300-350Hz",
+      "importance": 0.09595
+    },
+    {
+      "band": "250-300Hz",
+      "importance": 0.09186
+    },
+    {
+      "band": "350-400Hz",
+      "importance": 0.08317
+    },
+    {
+      "band": "400-450Hz",
+      "importance": 0.07039
+    },
+    {
+      "band": "450-500Hz",
+      "importance": 0.03345
+    }
+  ],
+  "Severity-75": [
+    {
+      "band": "100-150Hz",
+      "importance": 0.23834
+    },
+    {
+      "band": "50-100Hz",
+      "importance": 0.18299
+    },
+    {
+      "band": "200-250Hz",
+      "importance": 0.15639
+    },
+    {
+      "band": "0-50Hz",
+      "importance": 0.15301
+    },
+    {
+      "band": "150-200Hz",
+      "importance": 0.13305
+    },
+    {
+      "band": "250-300Hz",
+      "importance": 0.08955
+    },
+    {
+      "band": "300-350Hz",
+      "importance": 0.08327
+    },
+    {
+      "band": "350-400Hz",
+      "importance": 0.07064
+    },
+    {
+      "band": "400-450Hz",
+      "importance": 0.06515
+    },
+    {
+      "band": "450-500Hz",
+      "importance": 0.02809
+    }
+  ]
+}

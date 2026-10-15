@@ -1,0 +1,12 @@
+# keep the image small & builds fast
+__pycache__/
+*/__pycache__/
+*.pyc
+_*.log
+*.log
+.git/
+.gitignore
+notebooks/
+data/processed/*.npz
+# NOTE: models/ is kept so the dashboard works without retraining.
+# Raw dataset lives outside this folder (../time domain) and is mounted at runtime.

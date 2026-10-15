@@ -1,0 +1,11 @@
+{
+  "models": [
+    "cnn",
+    "cnnbilstm",
+    "lsam"
+  ],
+  "meta_file_5class": 0.8632,
+  "meta_macro_f1": 0.8647,
+  "meta_binary": 0.9658,
+  "n_files": 117
+}

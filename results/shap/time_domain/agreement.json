@@ -1,0 +1,6 @@
+{
+  "topk": 20,
+  "mean_overlap": 0.5608,
+  "mean_spearman": 0.6133,
+  "n": 120
+}

@@ -1,0 +1,18 @@
+numpy>=1.24
+pandas>=2.0
+openpyxl>=3.1
+scipy>=1.10
+scikit-learn>=1.3
+matplotlib>=3.7
+tensorflow>=2.15
+shap>=0.44
+EMD-signal>=1.5   # provides the `PyEMD` module used by src/inference.py and src/newdata_2ch.py
+boto3>=1.34       # SMS alerts through AWS SNS (api/alerts.py)
+# --- web dashboard (API) ---
+fastapi>=0.110
+uvicorn>=0.27
+python-multipart>=0.0.9
+reportlab>=4.0
+# dev/test
+pytest>=7.0
+httpx>=0.24,<0.28

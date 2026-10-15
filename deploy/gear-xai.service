@@ -1,0 +1,23 @@
+[Unit]
+Description=Gear fault XAI dashboard (FastAPI + React, time-domain dataset)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/gear-xai
+# S3_BUCKET and AWS_REGION are read from this file, so no bucket name lives in the repo.
+# The leading "-" means the service still starts if the file is missing.
+EnvironmentFile=-/etc/gear-xai.env
+# The dataset copied from S3 by deploy/sync_dataset.sh
+Environment=TIME_DOMAIN_DIR=/opt/gear-xai/data/time_domain
+Environment=TF_CPP_MIN_LOG_LEVEL=2
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/gear-xai/venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

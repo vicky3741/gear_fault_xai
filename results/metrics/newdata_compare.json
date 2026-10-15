@@ -1,0 +1,23 @@
+{
+  "1D-CNN": {
+    "window_5class": 0.502,
+    "window_macro_f1": 0.488,
+    "file_5class": 0.5139,
+    "file_macro_f1": 0.5147,
+    "file_binary": 0.875
+  },
+  "CNN-BiLSTM": {
+    "window_5class": 0.504,
+    "window_macro_f1": 0.4877,
+    "file_5class": 0.5833,
+    "file_macro_f1": 0.5689,
+    "file_binary": 0.8472
+  },
+  "LSAM-CNN-BiLSTM": {
+    "window_5class": 0.5179,
+    "window_macro_f1": 0.5107,
+    "file_5class": 0.5694,
+    "file_macro_f1": 0.5596,
+    "file_binary": 0.875
+  }
+}

@@ -1,0 +1,19 @@
+# Raw vibration data: large, shared separately (lives one level up in local setups)
+time domain/
+
+# Local-only and generated files
+node_modules/
+data/history.db
+data/processed/
+.claude/
+*.zip
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+
+# Logs
+*.log

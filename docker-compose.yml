@@ -1,0 +1,31 @@
+# Convenience wrapper. Usage:
+#   docker compose up dashboard      -> FastAPI + React dashboard at http://localhost:8000
+#   docker compose run --rm pipeline -> retrain the 3-model time-domain ensemble
+#
+# The dataset folder (Desktop\time domain) is mounted read-only at /time_domain, and
+# TIME_DOMAIN_DIR points config.py there. results/ and models/ are mounted back to the
+# host so trained models and metrics persist.
+services:
+  dashboard:
+    build: .
+    image: gear-fault-xai
+    ports:
+      - "8000:8000"
+    environment:
+      - TIME_DOMAIN_DIR=/time_domain
+    volumes:
+      - "../time domain:/time_domain:ro"
+      - ./results:/app/results
+      - ./models:/app/models
+
+  pipeline:
+    build: .
+    image: gear-fault-xai
+    environment:
+      - TIME_DOMAIN_DIR=/time_domain
+    volumes:
+      - "../time domain:/time_domain:ro"
+      - ./results:/app/results
+      - ./models:/app/models
+      - ./data:/app/data
+    command: ["python", "-m", "src.train_meta_td"]

@@ -1,0 +1,56 @@
+{
+  "window_accuracy": 0.7749,
+  "file_accuracy": 0.8034,
+  "file_macro_f1": 0.8032,
+  "file_binary": 0.9316,
+  "n_files": 117,
+  "seeds": [
+    42,
+    7,
+    123
+  ],
+  "confusion": [
+    [
+      20,
+      1,
+      2,
+      0,
+      2
+    ],
+    [
+      3,
+      16,
+      2,
+      0,
+      1
+    ],
+    [
+      0,
+      1,
+      19,
+      0,
+      3
+    ],
+    [
+      0,
+      1,
+      4,
+      16,
+      1
+    ],
+    [
+      0,
+      2,
+      0,
+      0,
+      23
+    ]
+  ],
+  "classes": [
+    "Healthy",
+    "Severity-100",
+    "Severity-25",
+    "Severity-50",
+    "Severity-75"
+  ]
+}

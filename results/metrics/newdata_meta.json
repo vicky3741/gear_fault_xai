@@ -1,0 +1,21 @@
+{
+  "per_model": {
+    "1D-CNN": {
+      "file_5class": 0.8889,
+      "file_binary": 0.9829
+    },
+    "CNN-BiLSTM": {
+      "file_5class": 0.8803,
+      "file_binary": 0.9744
+    },
+    "LSAM-CNN-BiLSTM": {
+      "file_5class": 0.8632,
+      "file_binary": 0.9829
+    }
+  },
+  "META_ensemble_file_5class": 0.906,
+  "META_ensemble_macro_f1": 0.9059,
+  "META_ensemble_binary": 0.9915,
+  "n_files": 117,
+  "n_models": 15
+}
