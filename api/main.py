@@ -48,9 +48,16 @@ def datasets():
             continue
         try:
             b = INF.load_bundle(key)
+            pp = b["pp"]
+            prep = {"fs": pp.get("fs"), "window": pp.get("window"),
+                    "stride": pp.get("test_stride", pp.get("stride")), "n_bins": pp.get("n_bins"),
+                    "emd_denoise": pp.get("emd_denoise"), "emd_drop_imf": pp.get("drop_imf"),
+                    "use_fft": pp.get("use_fft")}
             out.append({"key": key, "label": info["label"], "n_channels": info["n_channels"],
                         "classes": list(b["le"].classes_), "models": b["model_files"],
-                        "class_colors": CLASS_COLORS})
+                        "class_colors": CLASS_COLORS,
+                        "preprocessing": {k: (v.item() if hasattr(v, "item") else v)
+                                          for k, v in prep.items()}})
         except Exception as e:
             out.append({"key": key, "label": info["label"], "error": str(e)})
     return {"datasets": out}
@@ -76,14 +83,42 @@ def _raw_from_sample(dataset, sample_id, file):
     return io_utils.load_sample_raw(dataset, sample_id), f"sample:{sample_id}"
 
 
-def _top_band(dataset, raw, res, prev):
-    """Main frequency band for the alert text. Computed only when an alert may be sent."""
-    if not alerts.should_alert(prev, res["predicted_class"]):
-        return None
+def _per_model_votes(dataset, raw):
+    """Each ensemble member's own recording-level vote (read-only: same preprocessing and models
+    as src.inference; the META result is the mean of these). Keyed by model file stem."""
+    b = INF.load_bundle(dataset)
+    classes = list(b["le"].classes_)
+    X, _ = INF.preprocess_recording(raw, b["pp"])
+    out = {}
+    for f, m in zip(b["model_files"], b["models"]):
+        p = m.predict(X, verbose=0).mean(0)
+        k = int(p.argmax())
+        out[os.path.splitext(f)[0]] = {"probabilities": {classes[i]: float(p[i]) for i in range(len(classes))},
+                                       "predicted_class": classes[k], "confidence": float(p[k])}
+    return out
+
+
+@app.get("/signal")
+def signal(dataset: str, sample_id: str):
+    """Raw vibration signal of one recording (both sensors) and its amplitude spectrum.
+    The spectrum is rfft/N of the whole raw recording, for viewing only (the model uses
+    EMD-denoised, windowed FFTs)."""
+    _check(dataset)
     try:
-        return EX.explain_recording(dataset, raw)["top10_bands"][0]["band"]
-    except Exception:
-        return None
+        raw = io_utils.load_sample_raw(dataset, sample_id)
+    except Exception as e:
+        raise HTTPException(404, f"recording not found: {sample_id} ({e})")
+    pp = INF.load_bundle(dataset)["pp"]
+    fs = float(pp.get("fs"))
+    n = int(raw.shape[0])
+    spec = np.abs(np.fft.rfft(raw, axis=0)) / n
+    return {"dataset": dataset, "sample_id": sample_id, "fs": fs, "n_samples": n,
+            "duration_s": n / fs, "channels": ["p1", "p2"][: raw.shape[1]],
+            "t": (np.arange(n) / fs).round(6).tolist(),
+            "signal": {f"p{c + 1}": raw[:, c].astype(float).tolist() for c in range(raw.shape[1])},
+            "fft": {"freqs": np.fft.rfftfreq(n, 1.0 / fs).tolist(),
+                    **{f"p{c + 1}": spec[:, c].astype(float).tolist() for c in range(raw.shape[1])}},
+            "window": int(pp.get("window")), "stride": int(pp.get("test_stride", pp.get("stride")))}
 
 
 @app.post("/predict")
@@ -92,21 +127,25 @@ async def predict(dataset: str = Form(...), sample_id: str = Form(None),
     _check(dataset)
     raw, src = _raw_from_sample(dataset, sample_id, file)
     res = INF.predict_recording(dataset, raw)
+    res["per_model"] = _per_model_votes(dataset, raw)
     res["warning"] = None
     res["class_colors"] = CLASS_COLORS
     prev = db.last_class(dataset)                     # machine's previous diagnosis, before this one
-    top = _top_band(dataset, raw, res, prev)
     res["id"] = db.add(dataset, src, res)
-    res["alert"] = alerts.check_and_alert(dataset, prev, res, top)
+    res["alert"] = alerts.check_and_alert(dataset, prev, res)
     return res
 
 
 @app.post("/explain")
 async def explain(dataset: str = Form(...), sample_id: str = Form(None),
-                  target_class: str = Form(None), file: UploadFile = File(None)):
+                  target_class: str = Form(None), model: str = Form(None),
+                  file: UploadFile = File(None)):
     _check(dataset)
     raw, src = _raw_from_sample(dataset, sample_id, file)
-    out = EX.explain_recording(dataset, raw, target_class=target_class)
+    try:
+        out = EX.explain_recording(dataset, raw, target_class=target_class, model=model)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
     out["sentence"] = EX.explanation_sentence(out["top10_bands"], out["predicted_class"])
     out["warning"] = None
     return out
@@ -148,15 +187,87 @@ def metrics(dataset: str):
     nm = os.path.join(C.METRIC_DIR, "newdata_meta.json")
     if os.path.exists(nm):
         out["model_comparison"] = json.load(open(nm))
+    # earlier experiments (A8), described from the docstrings of the scripts that wrote them
+    exps = []
+    for key, label, protocol in EXPERIMENTS:
+        p = os.path.join(C.METRIC_DIR, f"{key}.json")
+        if os.path.exists(p):
+            exps.append({"key": key, "label": label, "protocol": protocol, "results": json.load(open(p))})
+    out["experiments"] = exps
+    # reference confusion matrix (A7): NOT the deployed model, see REFERENCE_CONFUSION_NOTE
+    rc = os.path.join(C.METRIC_DIR, "time_domain_test.json")
+    if os.path.exists(rc):
+        out["reference_confusion"] = {**json.load(open(rc)), "note": REFERENCE_CONFUSION_NOTE}
+    return out
+
+
+# (file stem, short label, protocol) - text taken from each script's docstring in src/
+EXPERIMENTS = [
+    ("newdata_compare", "1 sensor · unseen recordings",
+     "Single channel; file-level split (test recordings never seen in training); window 256, stride 128; "
+     "EMD denoise, FFT, standardise; 3-seed ensemble per model (src/newdata_compare.py)."),
+    ("newdata_temporal", "1 sensor · time split",
+     "Single channel; within-file temporal split (train samples 0-640, test 640-1024); stride 64; "
+     "EMD denoise, FFT, standardise; 3-seed ensemble per model (src/newdata_compare_temporal.py)."),
+    ("newdata_2ch", "2 sensors · time split",
+     "Positions p1 + p2 paired as 2 channels; within-file temporal split; EMD denoise, FFT, standardise; "
+     "3-seed ensemble per model (src/newdata_2ch.py)."),
+    ("newdata_push", "2 sensors · stride 32 + augmentation",
+     "p1 + p2; within-file temporal split; window 256, stride 32; train-only augmentation; "
+     "5-seed ensemble per model (src/newdata_push.py)."),
+]
+REFERENCE_CONFUSION_NOTE = ("Reference only: 1D-CNN, 2-channel, 3 seeds (42, 7, 123). Its scores equal the 1D-CNN row of "
+                            "newdata_2ch. Not the deployed META ensemble; the script that wrote it is not in the repository.")
+
+
+@app.get("/class-spectra")
+def class_spectra(dataset: str):
+    """Average amplitude spectrum (rfft/N of the raw recording) per true class and sensor (A5).
+    Computed once from the dataset files, then cached in data/processed/."""
+    _check(dataset)
+    samples = io_utils.list_samples(dataset)
+    import hashlib
+    sig = f"{len(samples)}:" + hashlib.md5("|".join(s["id"] for s in samples).encode()).hexdigest()[:12]
+    cache = os.path.join(C.PROC_DIR, f"class_spectra_{dataset}.json")
+    if os.path.exists(cache):
+        try:
+            c = json.load(open(cache))
+            if c.get("signature") == sig:
+                return c
+        except Exception:
+            pass
+    fs = float(INF.load_bundle(dataset)["pp"]["fs"])
+    acc = {}
+    for s in samples:
+        raw = io_utils.load_sample_raw(dataset, s["id"])
+        spec = np.abs(np.fft.rfft(raw, axis=0)) / raw.shape[0]          # (bins, ch)
+        a = acc.setdefault(s["class"], {"sum": np.zeros_like(spec), "n": 0})
+        a["sum"] += spec; a["n"] += 1
+    n_samples = raw.shape[0] if samples else 0
+    out = {"dataset": dataset, "signature": sig, "fs": fs, "n_samples": int(n_samples),
+           "freqs": np.fft.rfftfreq(n_samples, 1.0 / fs).tolist() if samples else [],
+           "classes": {cls: {"n": a["n"],
+                             **{f"p{c + 1}": (a["sum"][:, c] / a["n"]).tolist() for c in range(a["sum"].shape[1])}}
+                       for cls, a in acc.items()}}
+    json.dump(out, open(cache, "w"))
     return out
 
 
 @app.get("/batch-samples")
-def batch_samples(dataset: str):
-    """Run the model on every cloud recording. Results are not saved to history and send no alerts."""
+def batch_samples(dataset: str, ids: str = None):
+    """Run the model on every cloud recording, or only on `ids` (comma-separated sample ids).
+    Results are not saved to history and send no alerts."""
     _check(dataset)
     rows = []
-    for s in io_utils.list_samples(dataset):
+    todo = io_utils.list_samples(dataset)
+    if ids:
+        wanted = [i for i in ids.split(",") if i]
+        known = {s["id"]: s for s in todo}
+        unknown = [i for i in wanted if i not in known]
+        if unknown:
+            raise HTTPException(400, f"unknown recording(s): {', '.join(unknown[:5])}")
+        todo = [known[i] for i in wanted]
+    for s in todo:
         try:
             r = INF.predict_recording(dataset, io_utils.load_sample_raw(dataset, s["id"]))
             rows.append({"file": s["id"], "class": s["class"], "predicted_class": r["predicted_class"],
@@ -171,6 +282,16 @@ def batch_samples(dataset: str):
 @app.get("/history")
 def history(dataset: str = None, limit: int = 100):
     return {"history": db.list_all(limit=limit, dataset=dataset)}
+
+
+@app.get("/history/{rid}")
+def history_item(rid: int):
+    """The full saved result of one past diagnosis (A4)."""
+    res = db.get(rid)
+    if not res:
+        raise HTTPException(404, "prediction not found")
+    row = next((r for r in db.list_all(limit=100000) if r["id"] == rid), None)
+    return {"id": rid, "ts": row["ts"] if row else None, "source": row["source"] if row else None, "result": res}
 
 
 @app.delete("/history/{rid}")

@@ -1,5 +1,123 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-:root{color-scheme:light dark}
-body{margin:0;font-family:system-ui,Segoe UI,Roboto,sans-serif}
+
+/* Theme tokens: RGB triplets so Tailwind can apply opacity (bg-primary/10).
+   The .dark / .light class on <html> swaps them. Severity colours are the same in both themes. */
+:root,
+.dark {
+  color-scheme: dark;
+  --c-bg: 11 18 32;          /* #0B1220 */
+  --c-surface: 17 26 46;     /* #111A2E */
+  --c-raised: 22 33 58;      /* #16213A */
+  --c-line: 34 48 77;        /* #22304D */
+  --c-fg: 230 237 247;       /* #E6EDF7 */
+  --c-muted: 138 155 184;    /* #8A9BB8 */
+  --c-primary: 34 184 207;   /* #22B8CF */
+  --c-on-primary: 11 18 32;
+  --c-secondary: 99 102 241; /* #6366F1 (fills) */
+  --c-secondary-fg: 129 140 248; /* #818CF8 (text) */
+  --c-success: 34 197 94;
+  --c-warning: 245 158 11;
+  --c-danger: 239 68 68;
+  --c-critical-ring: 252 165 165; /* outline for the 100% badge on dark surfaces */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 24px -12px rgb(0 0 0 / 0.55);
+  --hero-from: 17 26 46;
+  --hero-to: 22 33 58;
+}
+
+.light {
+  color-scheme: light;
+  --c-bg: 244 247 251;       /* #F4F7FB */
+  --c-surface: 255 255 255;
+  --c-raised: 238 242 248;   /* #EEF2F8 */
+  --c-line: 214 222 234;     /* #D6DEEA */
+  --c-fg: 15 26 46;          /* #0F1A2E */
+  --c-muted: 86 101 126;     /* #56657E */
+  --c-primary: 11 127 145;   /* #0B7F91 */
+  --c-on-primary: 255 255 255;
+  --c-secondary: 79 70 229;  /* #4F46E5 */
+  --c-secondary-fg: 79 70 229;
+  --c-success: 21 128 61;
+  --c-warning: 180 83 9;
+  --c-danger: 185 28 28;
+  --c-critical-ring: 185 28 28;
+  --shadow-card: 0 1px 2px rgb(15 26 46 / 0.06), 0 8px 24px -14px rgb(15 26 46 / 0.18);
+  --hero-from: 255 255 255;
+  --hero-to: 232 240 250;
+}
+
+:root {
+  /* severity (fills; never used as text colour) */
+  --sev-0: #22c55e;
+  --sev-1: #facc15;
+  --sev-2: #f97316;
+  --sev-3: #ef4444;
+  --sev-4: #b91c1c;
+}
+
+html,
+body {
+  background: rgb(var(--c-bg));
+  color: rgb(var(--c-fg));
+}
+
+body {
+  margin: 0;
+  font-family: Poppins, system-ui, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+    box-shadow: var(--shadow-card);
+  }
+  .card-hover {
+    @apply transition-transform duration-200 hover:-translate-y-0.5;
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-primary;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium
+      transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-primary text-on-primary hover:bg-primary/90;
+  }
+  .btn-outline {
+    @apply btn border border-line bg-transparent text-fg hover:bg-raised;
+  }
+  .btn-icon {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line text-muted
+      transition-colors hover:bg-raised hover:text-fg;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-raised px-3 py-2 text-sm text-fg outline-none
+      placeholder:text-muted focus:border-primary focus:ring-2 focus:ring-primary/30;
+  }
+}
+
+/* skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, rgb(var(--c-raised)) 0%, rgb(var(--c-line)) 50%, rgb(var(--c-raised)) 100%);
+  background-size: 800px 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+/* thin scrollbars */
+* { scrollbar-width: thin; scrollbar-color: rgb(var(--c-line)) transparent; }
+
+/* Recharts text follows the theme */
+.recharts-text, .recharts-cartesian-axis-tick-value { fill: rgb(var(--c-muted)); }
+.recharts-legend-item-text { color: rgb(var(--c-fg)) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  .card-hover { transition: none; }
+}
