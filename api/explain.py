@@ -36,11 +36,13 @@ def _gradxinput(model, X, cls):
     return g * X                                          # (n,bins,ch)
 
 
-def explain_recording(dataset, raw, target_class=None, band_width=5.0):
+def explain_recording(dataset, raw, target_class=None, band_width=5.0, model=None):
     """
     SHAP (GradientExplainer) + Gradient x Input for a recording.
     Returns band-level importance, top-10 bands, per-channel importance,
     and an agreement overlap between the two methods.
+    `model` = file stem of the ensemble member to explain (e.g. "cnn", "cnnbilstm", "lsam");
+    default None keeps the original behaviour (the first model, 1D-CNN).
     """
     import shap
     b = INF.load_bundle(dataset)
@@ -56,7 +58,14 @@ def explain_recording(dataset, raw, target_class=None, band_width=5.0):
     # background (cached during training), else a slice of this recording
     bgfile = os.path.join(b["info"]["dir"], "shap_background.npy")
     bg = np.load(bgfile) if os.path.exists(bgfile) else X[: min(40, len(X))]
-    model0 = models[0]
+    stems = [os.path.splitext(f)[0] for f in b["model_files"]]
+    if model is None:
+        mi = 0
+    elif model in stems:
+        mi = stems.index(model)
+    else:
+        raise ValueError(f"unknown model '{model}' (choose from {', '.join(stems)})")
+    model0 = models[mi]
     expl = shap.GradientExplainer(model0, bg)
     sv = np.array(expl.shap_values(X))                     # (n,bins,ch,ncl) or list
     if sv.ndim == 4:
@@ -90,6 +99,9 @@ def explain_recording(dataset, raw, target_class=None, band_width=5.0):
         "top10_bands": top10,
         "channel_importance": {ch_names[i]: float(ch_imp[i]) for i in range(len(ch_names))},
         "agreement_overlap_topk": overlap,
+        "agreement_topk": k,
+        "explained_model": stems[mi],
+        "available_models": stems,
         "n_windows": int(len(starts)),
     }
 

@@ -28,22 +28,23 @@ def test_no_alert_for_low_levels_or_same_level_or_decrease():
 
 
 def test_each_level_has_its_own_message():
-    m50 = alerts.build_message("Severity-50", "Healthy", "100-105Hz", 0.8123)
-    m75 = alerts.build_message("Severity-75", "Severity-50", "100-105Hz", 0.8123)
-    m100 = alerts.build_message("Severity-100", "Severity-75", "100-105Hz", 0.8123)
+    m50 = alerts.build_message("Severity-50", "Healthy", 0.8123)
+    m75 = alerts.build_message("Severity-75", "Severity-50", 0.8123)
+    m100 = alerts.build_message("Severity-100", "Severity-75", 0.8123)
     assert m50.startswith("ALERT") and "50%" in m50
     assert m75.startswith("URGENT") and "75%" in m75
     assert m100.startswith("CRITICAL") and "100%" in m100
     assert len({m50, m75, m100}) == 3
     for m in (m50, m75, m100):
-        assert C.MACHINE_NAME in m and "100-105Hz" in m and "81.2%" in m
+        assert C.MACHINE_NAME in m and "81.2%" in m
         assert "was" in m and "Action:" in m
+        assert "Main frequency" not in m          # no SHAP step on the alert path
 
 
 def test_alerts_are_off_without_any_channel(monkeypatch):
     _no_channel(monkeypatch)
     res = {"predicted_class": "Severity-75", "confidence": 0.9}
-    out = alerts.check_and_alert("time_domain", "Severity-50", res, "100-105Hz")
+    out = alerts.check_and_alert("time_domain", "Severity-50", res)
     assert out["sent"] is False and "alerts off" in out["reason"]
     assert "URGENT" in out["message"]
 
@@ -53,7 +54,7 @@ def test_no_increase_means_no_send(monkeypatch):
     monkeypatch.setattr(C, "TELEGRAM_CHAT_ID", "1")
     monkeypatch.setattr(alerts, "send_telegram", lambda msg: 1 / 0)   # must never be called
     res = {"predicted_class": "Severity-25", "confidence": 0.7}
-    out = alerts.check_and_alert("time_domain", "Healthy", res, None)
+    out = alerts.check_and_alert("time_domain", "Healthy", res)
     assert out["sent"] is False and "no severity increase" in out["reason"]
 
 
@@ -64,7 +65,7 @@ def test_telegram_is_used_when_configured(monkeypatch):
     sent = []
     monkeypatch.setattr(alerts, "send_telegram", lambda msg: sent.append(msg) or "77")
     res = {"predicted_class": "Severity-100", "confidence": 0.95}
-    out = alerts.check_and_alert("time_domain", "Severity-75", res, "100-105Hz")
+    out = alerts.check_and_alert("time_domain", "Severity-75", res)
     assert out["sent"] is True and out["channel"] == "telegram" and out["message_id"] == "77"
     assert len(sent) == 1 and sent[0].startswith("CRITICAL")
 
@@ -74,7 +75,7 @@ def test_sms_is_the_fallback(monkeypatch):
     monkeypatch.setattr(C, "ALERT_PHONE", "+910000000000")
     monkeypatch.setattr(alerts, "send_sms", lambda msg: "sns-1")
     res = {"predicted_class": "Severity-50", "confidence": 0.6}
-    out = alerts.check_and_alert("time_domain", "Healthy", res, None)
+    out = alerts.check_and_alert("time_domain", "Healthy", res)
     assert out["sent"] is True and out["channel"] == "sms" and out["message_id"] == "sns-1"
 
 
@@ -86,9 +87,9 @@ def test_failure_is_reported_not_raised(monkeypatch):
         raise RuntimeError("bot was blocked by the user")
     monkeypatch.setattr(alerts, "send_telegram", boom)
     res = {"predicted_class": "Severity-50", "confidence": 0.6}
-    out = alerts.check_and_alert("time_domain", "Healthy", res, None)
+    out = alerts.check_and_alert("time_domain", "Healthy", res)
     assert out["sent"] is False and "bot was blocked" in out["reason"]
 
 
 def test_other_datasets_never_alert():
-    assert alerts.check_and_alert("other", "Healthy", {"predicted_class": "Severity-100", "confidence": 1}, None) is None
+    assert alerts.check_and_alert("other", "Healthy", {"predicted_class": "Severity-100", "confidence": 1}) is None

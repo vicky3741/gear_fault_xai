@@ -15,15 +15,17 @@ SHORT = {"Healthy": "Healthy", "Severity-25": "25%", "Severity-50": "50%",
          "Severity-75": "75%", "Severity-100": "100%"}
 
 # Same meaning as the dashboard's guidance and reason texts (frontend/src/App.tsx).
+# Kept short on purpose: no SHAP step on this path, so the alert goes out at once.
+# The frequency bands are on the dashboard's Explainability tab.
 MESSAGES = {
     "Severity-50": ("ALERT {machine}: fault severity now 50% (was {prev}). The defect has grown, "
-                    "with stronger repeated impacts. Main frequency: {band}. "
+                    "with stronger repeated impacts. "
                     "Action: schedule maintenance at the next opportunity. Confidence {conf}%."),
     "Severity-75": ("URGENT {machine}: fault severity now 75% (was {prev}). Large impacts on almost "
-                    "every rotation, risk of further damage. Main frequency: {band}. "
+                    "every rotation, risk of further damage. "
                     "Action: plan corrective maintenance soon. Confidence {conf}%."),
     "Severity-100": ("CRITICAL {machine}: fault severity now 100% (was {prev}). Very strong impacts "
-                     "each turn, failure can happen soon. Main frequency: {band}. "
+                     "each turn, failure can happen soon. "
                      "Action: stop the machine and repair now. Confidence {conf}%."),
 }
 
@@ -37,9 +39,9 @@ def should_alert(prev_cls, new_cls):
     return new_cls in ALERT_CLASSES and level(new_cls) > level(prev_cls or "Healthy")
 
 
-def build_message(new_cls, prev_cls, band, conf):
+def build_message(new_cls, prev_cls, conf):
     return MESSAGES[new_cls].format(machine=C.MACHINE_NAME, prev=SHORT.get(prev_cls or "Healthy", "Healthy"),
-                                    band=band or "not available", conf=round(conf * 100, 1))
+                                    conf=round(conf * 100, 1))
 
 
 def send_telegram(message):
@@ -83,7 +85,7 @@ def send_alert(message):
     return ch, send_sms(message)
 
 
-def check_and_alert(dataset, prev_cls, result, top_band):
+def check_and_alert(dataset, prev_cls, result):
     """
     Decide and send the alert for one new diagnosis. Never raises: a failed send must not
     break the diagnosis. Returns a small status dict stored in the API response.
@@ -93,7 +95,7 @@ def check_and_alert(dataset, prev_cls, result, top_band):
     new_cls = result["predicted_class"]
     if not should_alert(prev_cls, new_cls):
         return {"sent": False, "reason": "no severity increase to 50%, 75% or 100%"}
-    message = build_message(new_cls, prev_cls, top_band, result["confidence"])
+    message = build_message(new_cls, prev_cls, result["confidence"])
     if channel() is None:
         return {"sent": False, "reason": "alerts off (no Telegram bot or phone number set)", "message": message}
     try:
